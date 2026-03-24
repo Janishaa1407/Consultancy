@@ -8,7 +8,13 @@ function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const { cartCount } = useCart()
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
+  const userInitials = (user?.name || '')
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join('')
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -50,6 +56,14 @@ function Header() {
             >
               Seasonal Offers
             </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="text-gray-700 hover:text-primary-600 font-medium transition"
+              >
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Search Bar */}
@@ -93,10 +107,9 @@ function Header() {
                 title="Account"
               >
                 <div className="bg-primary-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold uppercase">
-                  {user.firstName?.[0]}
-                  {user.lastName?.[0]}
+                  {userInitials || 'U'}
                 </div>
-                <span>{user.firstName}</span>
+                <span>{user?.name || user?.email || 'Account'}</span>
               </Link>
             )}
             <Link
@@ -177,13 +190,24 @@ function Header() {
                   </Link>
                 </>
               ) : (
-                <Link
-                  to="/account"
-                  className="text-gray-700 hover:text-primary-600 font-medium transition"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Profile
-                </Link>
+                <>
+                  <Link
+                    to="/account"
+                    className="text-gray-700 hover:text-primary-600 font-medium transition"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      className="text-gray-700 hover:text-primary-600 font-medium transition"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
+                </>
               )}
             </nav>
           </div>

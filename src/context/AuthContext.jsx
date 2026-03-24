@@ -1,46 +1,89 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { api } from '../api/client'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('authUser')
-    return saved ? JSON.parse(saved) : null
-  })
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    localStorage.setItem('authUser', JSON.stringify(user))
-  }, [user])
+    let cancelled = false
+    const load = async () => {
+      try {
+        const data = await api.get('/auth/me')
+        if (!cancelled) {
+          setUser(data.user || null)
+        }
+      } catch {
+        if (!cancelled) {
+          setUser(null)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  const login = (credentials) => {
-    // In a real app, you'd authenticate with a backend
-    setUser({
-      firstName: credentials.firstName || 'Guest',
-      lastName: credentials.lastName || '',
-      email: credentials.email,
-      phone: credentials.phone || '',
-    })
+  const login = async ({ email, password }) => {
+    setError(null)
+    const data = await api.post('/auth/login', { email, password })
+    setUser(data.user)
+    return data.user
   }
 
-  const signup = (data) => {
-    // Simulate account creation
-    setUser({
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email,
-      phone: data.phone || '',
-      dateOfBirth: data.dateOfBirth || '',
+  const signup = async ({ firstName, lastName, email, phone, password }) => {
+    setError(null)
+    const data = await api.post('/auth/register', {
+      name: `${firstName} ${lastName}`.trim(),
+      email,
+      phone,
+      password,
     })
+    setUser(data.user)
+    return data.user
   }
 
-  const logout = () => setUser(null)
+  const loginWithGoogle = async (idToken) => {
+    setError(null)
+    const data = await api.post('/auth/google', { idToken })
+    setUser(data.user)
+    return data.user
+  }
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } catch {
+      // ignore
+    }
+    setUser(null)
+  }
 
   const updateProfile = (updates) => {
-    setUser(prev => prev ? { ...prev, ...updates } : prev)
+    setUser(prev => prev ? { ...prev, ...updates, name: updates.name || prev.name } : prev)
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isAdmin: user?.role === 'admin',
+        loading,
+        error,
+        setError,
+        login,
+        signup,
+        loginWithGoogle,
+        logout,
+        updateProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

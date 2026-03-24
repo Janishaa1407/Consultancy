@@ -48,23 +48,23 @@ function Footer() {
               <li className="flex items-start">
                 <MapPin className="w-5 h-5 mr-2 mt-1 text-primary-400 flex-shrink-0" />
                 <span>
-                  123 Agriculture Street,<br />
-                  Farm District, City 12345
+                  1/440, Mettur Road, Kottapalayam - 621003,<br />
+                  Thuraiyur (TK), Trichy(DT)
                 </span>
               </li>
               <li className="flex items-center">
                 <Phone className="w-5 h-5 mr-2 text-primary-400 flex-shrink-0" />
-                <a href="tel:+1234567890" className="hover:text-primary-400 transition">
-                  +1 (234) 567-890
+                <a href="tel:+919342807610" className="hover:text-primary-400 transition">
+                  9342807610
                 </a>
               </li>
               <li className="flex items-center">
                 <Mail className="w-5 h-5 mr-2 text-primary-400 flex-shrink-0" />
                 <a
-                  href="mailto:info@fertilizershop.com"
+                  href="mailto:sathyaagro05@gmail.com"
                   className="hover:text-primary-400 transition"
                 >
-                  info@fertilizershop.com
+                  sathyaagro05@gmail.com
                 </a>
               </li>
             </ul>

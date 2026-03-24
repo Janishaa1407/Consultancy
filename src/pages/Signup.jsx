@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import GoogleLoginButton from '../components/GoogleLoginButton'
 
 function Signup() {
-  const { signup } = useAuth()
+  const { signup, error, setError } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({
     firstName: '',
@@ -16,23 +17,42 @@ function Signup() {
   })
 
   const handleChange = (e) => {
+    setError?.(null)
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form.password !== form.confirmPassword) {
-      alert('Passwords do not match')
+    setError?.(null)
+    if (!form.email.trim()) {
+      setError?.('Email is required')
       return
     }
-    signup(form)
-    navigate('/account')
+    if (form.password !== form.confirmPassword) {
+      setError?.('Passwords do not match')
+      return
+    }
+    if ((form.password || '').length < 6) {
+      setError?.('Password must be at least 6 characters')
+      return
+    }
+    try {
+      await signup(form)
+      navigate('/account')
+    } catch (err) {
+      setError?.(err.message || 'Sign up failed')
+    }
   }
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-md">
       <h1 className="text-3xl font-bold mb-6 text-gray-800">Sign Up</h1>
       <div className="bg-white rounded-lg shadow-md p-6">
+        {error && (
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -119,6 +139,9 @@ function Signup() {
             Create Account
           </button>
         </form>
+
+        <GoogleLoginButton />
+
         <p className="text-gray-600 text-sm mt-4">
           Already have an account?{' '}
           <Link to="/login" className="text-primary-600 hover:text-primary-700 font-semibold">

@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext'
 function Checkout() {
   const navigate = useNavigate()
   const { cartItems, cartTotal, clearCart } = useCart()
-  const { addOrder, addOrUpdateAddress } = useOrders()
+  const { createAddress, placeOrder, error, setError } = useOrders()
   const { user } = useAuth()
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
@@ -20,6 +20,7 @@ function Checkout() {
     city: '',
     state: '',
     zipCode: '',
+    requirements: '',
     deliveryMethod: 'standard',
     paymentMethod: 'card',
     cardNumber: '',
@@ -33,54 +34,69 @@ function Checkout() {
   const total = cartTotal + shippingCost + tax
 
   const handleInputChange = (e) => {
+    setError?.(null)
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (step === 1) {
+      if (!formData.firstName.trim() || !formData.lastName.trim()) {
+        setError?.('First name and last name are required')
+        return
+      }
+      if (!formData.email.trim()) {
+        setError?.('Email is required')
+        return
+      }
+      if (!formData.phone.trim() || formData.phone.replace(/\D/g, '').length < 8) {
+        setError?.('Valid phone number is required')
+        return
+      }
+      if (!formData.address.trim() || formData.address.trim().length < 5) {
+        setError?.('Address must be at least 5 characters')
+        return
+      }
+      if (!formData.city.trim() || !formData.state.trim()) {
+        setError?.('City and state are required')
+        return
+      }
+      if (!/^\d{4,10}$/.test(formData.zipCode)) {
+        setError?.('Pincode must be 4 to 10 digits')
+        return
+      }
       setStep(2)
     } else if (step === 2) {
       setStep(3)
     } else {
-      const orderId = `ORD-${Date.now()}`
-      const order = {
-        id: orderId,
-        date: new Date().toISOString().split('T')[0],
-        items: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-        total,
-        status: 'Processing',
-        customer: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-        },
-        shippingAddress: {
-          name: formData.firstName + ' ' + formData.lastName,
-          address: formData.address,
+      try {
+        const address = await createAddress({
+          fullAddress: `${formData.address}${formData.state ? `, ${formData.state}` : ''}`,
           city: formData.city,
-          state: formData.state,
-          zipCode: formData.zipCode,
+          pincode: formData.zipCode,
+          contactName: `${formData.firstName} ${formData.lastName}`.trim(),
+          contactPhone: formData.phone,
           isDefault: true,
-        },
-        paymentMethod: formData.paymentMethod,
-        deliveryMethod: formData.deliveryMethod,
-      }
+        })
 
-      addOrUpdateAddress(order.shippingAddress)
-      addOrder(order)
-      clearCart()
-      alert('Order placed successfully!')
-      navigate('/account')
+        await placeOrder({
+          addressId: address._id,
+          requirements: formData.requirements || '',
+          items: cartItems.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
+        })
+
+        clearCart()
+        alert('Order placed successfully!')
+        navigate('/account')
+      } catch (err) {
+        setError?.(err.message || 'Failed to place order')
+      }
     }
   }
 
@@ -101,6 +117,11 @@ function Checkout() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">Checkout</h1>
+      {error && (
+        <div className="mb-6 text-sm text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+          {error}
+        </div>
+      )}
 
       {/* Progress Steps */}
       <div className="mb-8">
@@ -241,7 +262,7 @@ function Checkout() {
                   </div>
                   <div>
                     <label className="block text-gray-700 font-semibold mb-2">
-                      ZIP Code *
+                      Pincode *
                     </label>
                     <input
                       type="text"
@@ -252,6 +273,19 @@ function Checkout() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
+                </div>
+                <div className="mb-6">
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Requirements (optional)
+                  </label>
+                  <textarea
+                    name="requirements"
+                    value={formData.requirements}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="Any special delivery notes or requirements..."
+                  />
                 </div>
                 <div className="mb-6">
                   <label className="block text-gray-700 font-semibold mb-2">
@@ -437,6 +471,12 @@ function Checkout() {
                     ))}
                   </div>
                 </div>
+                {formData.requirements && (
+                  <div className="mb-6">
+                    <h3 className="font-semibold mb-2">Requirements</h3>
+                    <p className="text-gray-700">{formData.requirements}</p>
+                  </div>
+                )}
                 <div className="flex space-x-4">
                   <button
                     type="button"

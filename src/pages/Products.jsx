@@ -1,13 +1,16 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Star, Filter, X } from 'lucide-react'
-import { products, categories, cropTypes } from '../data/products'
 import { useCart } from '../context/CartContext'
+import { api } from '../api/client'
 
 function Products() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [showFilters, setShowFilters] = useState(false)
   const { addToCart } = useCart()
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const categoryFilter = searchParams.get('category') || 'all'
   const searchQuery = searchParams.get('search') || ''
@@ -15,29 +18,46 @@ function Products() {
   const priceFilter = searchParams.get('price') || 'all'
   const sortBy = searchParams.get('sort') || 'default'
 
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await api.get('/products')
+        if (!cancelled) setProducts(data.products || [])
+      } catch (e) {
+        if (!cancelled) setError(e.message || 'Failed to load products')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const categories = useMemo(() => [{ id: 'all', name: 'All Products' }], [])
+  const cropTypes = useMemo(() => [], [])
+
   const filteredProducts = useMemo(() => {
     let filtered = [...products]
 
     // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(p => p.category === categoryFilter)
-    }
+    // (category field not in DB yet; reserved for future)
 
     // Search filter
     if (searchQuery) {
       filtered = filtered.filter(
         p =>
           p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.description.toLowerCase().includes(searchQuery.toLowerCase())
+          (p.description || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
     // Crop filter
-    if (cropFilter !== 'all') {
-      filtered = filtered.filter(p =>
-        p.cropTypes.includes(cropFilter)
-      )
-    }
+    // (cropTypes not in DB yet; reserved for future)
 
     // Price filter
     if (priceFilter !== 'all') {
@@ -187,7 +207,15 @@ function Products() {
             </select>
           </div>
 
-          {filteredProducts.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12 text-gray-600">Loading products...</div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-700 bg-red-50 border border-red-200 inline-block px-4 py-2 rounded">
+                {error}
+              </p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600 text-lg mb-4">
                 No products found matching your criteria.
@@ -203,10 +231,10 @@ function Products() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProducts.map(product => (
                 <div
-                  key={product.id}
+                  key={product._id}
                   className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition"
                 >
-                  <Link to={`/product/${product.id}`}>
+                  <Link to={`/product/${product._id}`}>
                     <img
                       src={product.image}
                       alt={product.name}
@@ -216,7 +244,7 @@ function Products() {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-2">
                       <span className="bg-primary-100 text-primary-800 text-xs font-semibold px-2 py-1 rounded">
-                        {product.category}
+                        In stock: {product.stock ?? 0}
                       </span>
                       <div className="flex items-center text-yellow-500">
                         <Star className="w-4 h-4 fill-current" />
@@ -226,7 +254,7 @@ function Products() {
                         <Star className="w-4 h-4 fill-current" />
                       </div>
                     </div>
-                    <Link to={`/product/${product.id}`}>
+                    <Link to={`/product/${product._id}`}>
                       <h3 className="text-xl font-semibold mb-2 text-gray-800 hover:text-primary-600 transition">
                         {product.name}
                       </h3>

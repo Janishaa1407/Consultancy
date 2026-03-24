@@ -13,6 +13,21 @@ import { OrderProvider } from './context/OrderContext'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminLayout from './pages/admin/AdminLayout'
+import AdminDashboard from './pages/admin/AdminDashboard'
+import AdminProducts from './pages/admin/AdminProducts'
+import AdminOrders from './pages/admin/AdminOrders'
+import AdminUsers from './pages/admin/AdminUsers'
+import {
+  AboutUsPage,
+  CareersPage,
+  ContactSupportPage,
+  FaqPage,
+  PrivacyPolicyPage,
+  ReturnPolicyPage,
+  ShippingPolicyPage,
+  TermsOfServicePage,
+} from './pages/InfoPages'
 
 function App() {
   return (
@@ -24,50 +39,80 @@ function App() {
               <Header />
               <main className="flex-grow">
                 <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route
-                    path="/products"
-                    element={
-                      <ProtectedRoute>
-                        <Products />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/product/:id"
-                    element={
-                      <ProtectedRoute>
-                        <ProductDetail />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/cart"
-                    element={
-                      <ProtectedRoute>
-                        <Cart />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/checkout"
-                    element={
-                      <ProtectedRoute>
-                        <Checkout />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/account"
-                    element={
-                      <ProtectedRoute>
-                        <Account />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                </Routes>
+  <Route path="/" element={<Home />} />
+
+  <Route
+    path="/products"
+    element={
+      <ProtectedRoute>
+        <Products />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/product/:id"
+    element={
+      <ProtectedRoute>
+        <ProductDetail />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/cart"
+    element={
+      <ProtectedRoute>
+        <Cart />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/checkout"
+    element={
+      <ProtectedRoute>
+        <Checkout />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route
+    path="/account"
+    element={
+      <ProtectedRoute>
+        <Account />
+      </ProtectedRoute>
+    }
+  />
+
+  <Route path="/login" element={<Login />} />
+  <Route path="/signup" element={<Signup />} />
+  <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+  <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+  <Route path="/shipping-policy" element={<ShippingPolicyPage />} />
+  <Route path="/return-policy" element={<ReturnPolicyPage />} />
+  <Route path="/faq" element={<FaqPage />} />
+  <Route path="/contact" element={<ContactSupportPage />} />
+  <Route path="/about" element={<AboutUsPage />} />
+  <Route path="/careers" element={<CareersPage />} />
+
+  {/* ADMIN PANEL */}
+  <Route
+    path="/admin"
+    element={
+      <ProtectedRoute requireAdmin>
+        <AdminLayout />
+      </ProtectedRoute>
+    }
+  >
+    <Route index element={<AdminDashboard />} />
+    <Route path="products" element={<AdminProducts />} />
+    <Route path="orders" element={<AdminOrders />} />
+    <Route path="users" element={<AdminUsers />} />
+  </Route>
+
+</Routes>
               </main>
               <Footer />
             </div>

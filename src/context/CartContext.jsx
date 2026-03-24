@@ -12,17 +12,31 @@ export function CartProvider({ children }) {
     localStorage.setItem('cartItems', JSON.stringify(cartItems))
   }, [cartItems])
 
+  const getProductKey = (product) => product?._id || product?.id
+
   const addToCart = (product, quantity = 1) => {
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id)
+      const key = getProductKey(product)
+      if (!key) return prev
+      const existing = prev.find(item => item.id === key)
       if (existing) {
         return prev.map(item =>
-          item.id === product.id
+          item.id === key
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
       }
-      return [...prev, { ...product, quantity }]
+      return [
+        ...prev,
+        {
+          id: key,
+          name: product.name,
+          price: product.price,
+          description: product.description || '',
+          image: product.image || product.image_url || product.imageUrl || '',
+          quantity,
+        },
+      ]
     })
   }
 

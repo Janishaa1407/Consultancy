@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Star, ShoppingCart, Check, AlertTriangle } from 'lucide-react'
-import { products } from '../data/products'
 import { useCart } from '../context/CartContext'
+import { api } from '../api/client'
 
 function ProductDetail() {
   const { id } = useParams()
@@ -10,12 +10,43 @@ function ProductDetail() {
   const [quantity, setQuantity] = useState(1)
   const [activeTab, setActiveTab] = useState('overview')
 
-  const product = products.find(p => p.id === parseInt(id))
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  if (!product) {
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const data = await api.get(`/products/${id}`)
+        if (!cancelled) setProduct(data.product || null)
+      } catch (e) {
+        if (!cancelled) setError(e.message || 'Failed to load product')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-12 text-center text-gray-600">
+        Loading product...
+      </div>
+    )
+  }
+
+  if (error || !product) {
     return (
       <div className="container mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold mb-4">Product not found</h1>
+        {error && <p className="text-gray-600 mb-4">{error}</p>}
         <Link
           to="/products"
           className="text-primary-600 hover:text-primary-700"
@@ -112,17 +143,8 @@ function ProductDetail() {
 
           {/* Quick Info */}
           <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">Recommended Crops:</h3>
-            <div className="flex flex-wrap gap-2">
-              {product.recommendedCrops.map((crop, index) => (
-                <span
-                  key={index}
-                  className="bg-white px-3 py-1 rounded-full text-sm"
-                >
-                  {crop}
-                </span>
-              ))}
-            </div>
+            <h3 className="font-semibold mb-2">Availability</h3>
+            <p className="text-sm text-gray-700">Stock: {product.stock ?? 0}</p>
           </div>
         </div>
       </div>
@@ -167,9 +189,9 @@ function ProductDetail() {
                   Advantages
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  {product.advantages.map((adv, index) => (
-                    <li key={index}>{adv}</li>
-                  ))}
+                  <li>High quality fertilizers</li>
+                  <li>Fast delivery</li>
+                  <li>Trusted shop</li>
                 </ul>
               </div>
               <div>
@@ -178,9 +200,7 @@ function ProductDetail() {
                   Disadvantages
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-gray-700">
-                  {product.disadvantages.map((dis, index) => (
-                    <li key={index}>{dis}</li>
-                  ))}
+                  <li>Always follow recommended usage</li>
                 </ul>
               </div>
             </div>
@@ -192,17 +212,15 @@ function ProductDetail() {
             <div>
               <h3 className="text-2xl font-bold mb-4">Benefits</h3>
               <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {product.benefits.map((benefit, index) => (
-                  <li key={index} className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span className="text-gray-700">{benefit}</span>
-                  </li>
-                ))}
+                <li className="flex items-start">
+                  <Check className="w-5 h-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                  <span className="text-gray-700">Improves crop growth</span>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="text-2xl font-bold mb-4">Uses</h3>
-              <p className="text-gray-700">{product.uses}</p>
+              <p className="text-gray-700">Use as per label instructions.</p>
             </div>
           </div>
         )}
@@ -211,17 +229,10 @@ function ProductDetail() {
           <div>
             <h3 className="text-2xl font-bold mb-4">Nutrient Composition</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(product.nutrientComposition).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="bg-gray-50 p-4 rounded-lg flex justify-between"
-                >
-                  <span className="font-semibold capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').trim()}:
-                  </span>
-                  <span className="text-gray-700">{value}</span>
-                </div>
-              ))}
+              <div className="bg-gray-50 p-4 rounded-lg flex justify-between">
+                <span className="font-semibold">Details</span>
+                <span className="text-gray-700">Available in description</span>
+              </div>
             </div>
           </div>
         )}
@@ -233,33 +244,28 @@ function ProductDetail() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-semibold mb-2">Dosage</h4>
-                  <p className="text-gray-700">{product.dosage}</p>
+                  <p className="text-gray-700">As recommended by the seller/expert.</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Method of Use</h4>
-                  <p className="text-gray-700">{product.methodOfUse}</p>
+                  <p className="text-gray-700">Follow instructions.</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Direction</h4>
-                  <p className="text-gray-700">{product.direction}</p>
+                  <p className="text-gray-700">Apply carefully.</p>
                 </div>
                 <div>
                   <h4 className="font-semibold mb-2">Application Frequency</h4>
-                  <p className="text-gray-700">{product.applicationFrequency}</p>
+                  <p className="text-gray-700">As needed.</p>
                 </div>
               </div>
             </div>
             <div>
               <h4 className="font-semibold mb-2">Recommended Crops</h4>
               <div className="flex flex-wrap gap-2">
-                {product.recommendedCrops.map((crop, index) => (
-                  <span
-                    key={index}
-                    className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full"
-                  >
-                    {crop}
-                  </span>
-                ))}
+                <span className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full">
+                  All crops (check description)
+                </span>
               </div>
             </div>
           </div>

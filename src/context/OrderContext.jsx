@@ -1,78 +1,99 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { api } from '../api/client'
+import { useAuth } from './AuthContext'
 
 const OrderContext = createContext(null)
 
 export function OrderProvider({ children }) {
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('orders')
-    return saved ? JSON.parse(saved) : []
-  })
+  const { user } = useAuth()
+  const [orders, setOrders] = useState([])
+  const [addresses, setAddresses] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const [addresses, setAddresses] = useState(() => {
-    const saved = localStorage.getItem('addresses')
-    return saved ? JSON.parse(saved) : []
-  })
+  const refreshOrders = async () => {
+    const data = await api.get('/orders/my')
+    setOrders(data.orders || [])
+  }
+
+  const refreshAddresses = async () => {
+    const data = await api.get('/addresses/my')
+    setAddresses(data.addresses || [])
+  }
 
   useEffect(() => {
-    localStorage.setItem('orders', JSON.stringify(orders))
-  }, [orders])
+    let cancelled = false
+    const load = async () => {
+      if (!user) {
+        setOrders([])
+        setAddresses([])
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      setError(null)
+      try {
+        const [o, a] = await Promise.all([api.get('/orders/my'), api.get('/addresses/my')])
+        if (cancelled) return
+        setOrders(o.orders || [])
+        setAddresses(a.addresses || [])
+      } catch (e) {
+        if (!cancelled) setError(e.message || 'Failed to load orders')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
-  useEffect(() => {
-    localStorage.setItem('addresses', JSON.stringify(addresses))
-  }, [addresses])
-
-  const addOrder = (order) => {
-    setOrders(prev => [order, ...prev])
+  const createAddress = async (address) => {
+    setError(null)
+    const data = await api.post('/addresses', address)
+    await refreshAddresses()
+    return data.address
   }
 
-  const addOrUpdateAddress = (address) => {
-    // Deduplicate by full address string
-    const key = `${address.address}|${address.city}|${address.state}|${address.zipCode}`
-    setAddresses(prev => {
-      const exists = prev.find(
-        a =>
-          `${a.address}|${a.city}|${a.state}|${a.zipCode}`.toLowerCase() ===
-          key.toLowerCase()
-      )
-      if (exists) return prev
-      return [
-        {
-          ...address,
-          id: Date.now(),
-          isDefault: prev.length === 0,
-        },
-        ...prev,
-      ]
-    })
+  const deleteAddress = async (id) => {
+    setError(null)
+    await api.delete(`/addresses/${id}`)
+    await refreshAddresses()
   }
 
-  const removeAddress = (id) => {
-    setAddresses(prev => prev.filter(a => a.id !== id))
+  const makeDefaultAddress = async (id) => {
+    setError(null)
+    await api.patch(`/addresses/${id}/default`, {})
+    await refreshAddresses()
   }
 
-  const setDefaultAddress = (id) => {
-    setAddresses(prev =>
-      prev.map(a => ({
-        ...a,
-        isDefault: a.id === id,
-      }))
-    )
+  const placeOrder = async ({ addressId, requirements, items }) => {
+    setError(null)
+    const data = await api.post('/orders', { addressId, requirements, items })
+    await refreshOrders()
+    return data.order
   }
 
-  return (
-    <OrderContext.Provider
-      value={{
-        orders,
-        addresses,
-        addOrder,
-        addOrUpdateAddress,
-        removeAddress,
-        setDefaultAddress,
-      }}
-    >
-      {children}
-    </OrderContext.Provider>
+  const value = useMemo(
+    () => ({
+      orders,
+      addresses,
+      loading,
+      error,
+      setError,
+      refreshOrders,
+      refreshAddresses,
+      createAddress,
+      deleteAddress,
+      makeDefaultAddress,
+      placeOrder,
+      setOrders,
+    }),
+    [orders, addresses, loading, error]
   )
+
+  return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>
 }
 
 export function useOrders() {

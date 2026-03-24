@@ -164,14 +164,14 @@ function Home() {
             <div className="bg-gray-50 p-6 rounded-lg shadow-md">
               <h3 className="text-2xl font-bold text-gray-800 mb-4">Visit Our Store</h3>
               <p className="text-gray-700 mb-4">
-                123 Agriculture Street, Farm District, City 12345
+                1/440, Mettur Road, Kottapalayam - 621003, Thuraiyur (TK), Trichy(DT)
               </p>
-              <p className="text-gray-700 mb-2">Phone: +1 (234) 567-890</p>
-              <p className="text-gray-700 mb-6">Email: info@fertilizershop.com</p>
+              <p className="text-gray-700 mb-2">Phone: 9342807610</p>
+              <p className="text-gray-700 mb-6">Email: sathyaagro05@gmail.com</p>
               <div className="rounded-lg overflow-hidden h-56">
                 <iframe
                   title="Store Location"
-                  src="https://www.google.com/maps/embed?pb=!4v1734315657!6m8!1m7!1sMcZRL94hLtEX13yCK9KEdQ!2m2!1d11.2580988!2d78.4894743!3f53.17833331985444!4f4.6669279467136136!5f0.7820865974627469"
+                  src="https://www.google.com/maps?q=1%2F440%2C%20Mettur%20Road%2C%20Kottapalayam%20-%20621003%2C%20Thuraiyur%20(TK)%2C%20Trichy(DT)&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
